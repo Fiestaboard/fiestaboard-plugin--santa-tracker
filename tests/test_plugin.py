@@ -155,8 +155,9 @@ class TestSantaTrackerPlugin:
         manifest_path = Path(__file__).parent.parent / "manifest.json"
         with open(manifest_path) as f:
             manifest = json.load(f)
-        for var in manifest["variables"]["simple"]:
-            assert var in result.data, f"Variable '{var}' declared in manifest but not in data"
+        simple_vars = manifest["variables"]["simple"]
+        for var_name in simple_vars.keys():
+            assert var_name in result.data, f"Variable '{var_name}' declared in manifest but not in data"
 
     @patch("plugins.santa_tracker.datetime")
     def test_fetch_data_locations_array(self, mock_datetime, sample_manifest, sample_config):
@@ -321,3 +322,67 @@ class TestSantaLocations:
                 f"Locations not ordered: offset {offsets[i]} at index {i} "
                 f"should be >= {offsets[i + 1]} at index {i + 1}"
             )
+
+
+class TestManifestMetadata:
+    """Validate that manifest.json follows the rich variable metadata format."""
+
+    @pytest.fixture(autouse=True)
+    def load_manifest(self):
+        manifest_path = Path(__file__).parent.parent / "manifest.json"
+        with open(manifest_path) as f:
+            self.manifest = json.load(f)
+
+    def test_required_top_level_fields(self):
+        for field in ("id", "name", "version"):
+            assert field in self.manifest, f"Missing required field: {field}"
+
+    def test_simple_variables_are_dict(self):
+        simple = self.manifest["variables"]["simple"]
+        assert isinstance(simple, dict), "variables.simple must be a dict, not a list"
+
+    def test_each_simple_variable_has_description(self):
+        for var_name, meta in self.manifest["variables"]["simple"].items():
+            assert "description" in meta, f"Variable '{var_name}' missing 'description'"
+
+    def test_each_simple_variable_has_type(self):
+        for var_name, meta in self.manifest["variables"]["simple"].items():
+            assert "type" in meta, f"Variable '{var_name}' missing 'type'"
+            assert meta["type"] in ("string", "number", "boolean"), (
+                f"Variable '{var_name}' has invalid type '{meta['type']}'"
+            )
+
+    def test_each_simple_variable_has_max_length(self):
+        for var_name, meta in self.manifest["variables"]["simple"].items():
+            assert "max_length" in meta, f"Variable '{var_name}' missing 'max_length'"
+            assert isinstance(meta["max_length"], int), (
+                f"Variable '{var_name}' max_length must be an int"
+            )
+
+    def test_each_simple_variable_has_example(self):
+        for var_name, meta in self.manifest["variables"]["simple"].items():
+            assert "example" in meta, f"Variable '{var_name}' missing 'example'"
+
+    def test_each_simple_variable_has_group(self):
+        groups = self.manifest["variables"].get("groups", {})
+        for var_name, meta in self.manifest["variables"]["simple"].items():
+            assert "group" in meta, f"Variable '{var_name}' missing 'group'"
+            assert meta["group"] in groups, (
+                f"Variable '{var_name}' references unknown group '{meta['group']}'"
+            )
+
+    def test_groups_have_labels(self):
+        groups = self.manifest["variables"].get("groups", {})
+        assert len(groups) > 0, "Must define at least one variable group"
+        for group_id, group_meta in groups.items():
+            assert "label" in group_meta, f"Group '{group_id}' missing 'label'"
+
+    def test_array_max_lengths_kept_at_top_level(self):
+        max_lengths = self.manifest.get("max_lengths", {})
+        arrays = self.manifest["variables"].get("arrays", {})
+        for array_name, array_meta in arrays.items():
+            for field in array_meta.get("item_fields", []):
+                key = f"{array_name}.*.{field}"
+                assert key in max_lengths, (
+                    f"Array field '{key}' missing from top-level max_lengths"
+                )
