@@ -2,7 +2,7 @@
 
 A FiestaBoard plugin that tracks Santa's journey around the world on Christmas Eve and Christmas Day.
 
-![Santa Tracker Display](./docs/santa-tracker-display.png)
+![Santa Tracker Display](./docs/board-display.png)
 
 ## How It Works
 
