@@ -1,7 +1,7 @@
 {
   "id": "santa_tracker",
   "name": "Santa Tracker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Track Santa's journey around the world as midnight of December 25th hits famous locations in each timezone",
   "author": "FiestaBoard Team",
   "icon": "gift",
@@ -114,5 +114,43 @@
       "caption": "Track Santa's journey around the world as midnight of December 25th hits famous locations in each timezone",
       "primary": true
     }
-  ]
+  ],
+  "demo": {
+    "name": "Santa Tracker Demo",
+    "device_type": "flagship",
+    "template": [
+      "Santa Tracker",
+      "{{santa_tracker.status}}",
+      "At {{santa_tracker.santa_location}}",
+      "Next {{santa_tracker.next_stop}}",
+      "{{santa_tracker.progress_percent}}% done",
+      "{{santa_tracker.visited_count}} visited"
+    ],
+    "line_metadata": [
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": true
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "center",
+        "wrap": false
+      }
+    ]
+  }
 }
