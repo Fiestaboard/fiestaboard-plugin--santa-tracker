@@ -124,6 +124,28 @@
       "primary": true
     }
   ],
+  "teaser": "SANTA IN TOKYO",
+  "previews": [
+    {
+      "device_type": "flagship",
+      "rows": [
+        "{63}{66}{63}{66}{63}{66}{63}{66}{63}{66}{63}{66}{63}{66}{63}{66}{63}{66}{63}{66}{63}{66}",
+        "    SANTA TRACKER",
+        "",
+        "   STATUS IN FLIGHT",
+        "   NEXT STOP NEW YORK",
+        "   GIFTS 2.4 BILLION"
+      ]
+    },
+    {
+      "device_type": "note",
+      "rows": [
+        "{63}{66}{63} SANTA",
+        "IN TOKYO JAPAN",
+        "50% COMPLETE"
+      ]
+    }
+  ],
   "demo": {
     "flagship": {
       "name": "Santa Tracker Demo",
