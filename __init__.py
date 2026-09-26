@@ -11,8 +11,36 @@ from typing import Any, Dict
 import pytz
 
 from src.plugins.base import PluginBase, PluginResult
+from src.text_to_board import count_tiles
 
 logger = logging.getLogger(__name__)
+
+# Fallback geometry when no board is bound (self.board is None -- unit tests,
+# legacy callers). Matches the Flagship, the platform's historical default.
+_DEFAULT_WIDTH = 22
+_DEFAULT_HEIGHT = 6
+
+# Most-important-first. A short board (a Note, 15x3) cannot show everything;
+# the tracking info -- where Santa is, how far along, where he's headed --
+# is what a user actually wants, so it survives before the title or the
+# status blurb does.
+_PRIORITY = ["at", "progress", "next", "status", "title"]
+
+# Reading order for whichever items survive _PRIORITY's cut.
+_NATURAL_ORDER = ["title", "status", "at", "next", "progress"]
+
+
+def _fit(text: str, width: int) -> str:
+    """Tile-safe truncate *text* to *width* tiles, then center it.
+
+    Measured in tiles (``count_tiles``), not characters, so a colour marker
+    would count as one tile rather than four -- this plugin emits none today,
+    but the measure is the board's own and should not silently drift from it.
+    """
+    while count_tiles(text) > width:
+        text = text[:-1]
+    return text.center(width)
+
 
 # Ordered list of locations by UTC offset (most ahead first, i.e. earliest to hit Dec 25).
 # Each entry: (display_name, timezone_name, utc_offset_hours)
@@ -140,7 +168,7 @@ class SantaTrackerPlugin(PluginBase):
             year = self.config.get("year", now_utc.year)
 
             data = _get_santa_status(now_utc, year)
-            return PluginResult(available=True, data=data)
+            return PluginResult(available=True, data=data, formatted_lines=self._format_display(data))
         except Exception as e:
             logger.exception("Error fetching Santa tracker data")
             return PluginResult(available=False, error=str(e))
@@ -149,20 +177,61 @@ class SantaTrackerPlugin(PluginBase):
         result = self.fetch_data()
         if not result.available or not result.data:
             return None
-        data = result.data
-        status = data["status"]
-        location = data["santa_location"]
-        next_stop = data["next_stop"]
-        progress = data["progress_percent"]
+        return result.formatted_lines
 
-        lines = [
-            "SANTA TRACKER".center(22),
-            status[:22].center(22),
-            "",
-            f"At: {location}"[:22].center(22),
-            (f"Next: {next_stop}" if next_stop else "")[:22].center(22),
-            f"Progress: {progress}%".center(22),
-        ]
+    def _format_display(self, data: dict[str, Any]) -> list[str]:
+        """Format Santa's status for the board, adapted to its size.
+
+        ``self.board`` is None outside a board-scoped render (unit tests,
+        legacy callers) -- fall back to the Flagship 22x6 layout. Width and
+        height are always derived from the board, never hardcoded: a Note
+        (15x3) keeps only the highest-priority lines (see ``_PRIORITY``),
+        while a taller board (a note_array/panel) uses its extra rows to
+        show more of the journey itself rather than sitting blank.
+        """
+        board = self.board
+        width = board.cols if board else _DEFAULT_WIDTH
+        height = board.rows if board else _DEFAULT_HEIGHT
+
+        status = data.get("status", "")
+        location = data.get("santa_location", "")
+        next_stop = data.get("next_stop", "")
+        progress = data.get("progress_percent", "0")
+        locations = data.get("locations") or []
+
+        items: dict[str, str] = {}
+        if location:
+            items["at"] = f"At: {location}"
+        items["progress"] = f"Progress: {progress}%"
+        if next_stop:
+            items["next"] = f"Next: {next_stop}"
+        if status:
+            items["status"] = status
+        items["title"] = "SANTA TRACKER"
+
+        kept = set(name for name in _PRIORITY if name in items)
+        # Trim lowest-priority items first until what remains fits height.
+        for name in reversed(_PRIORITY):
+            if len(kept) <= height:
+                break
+            kept.discard(name)
+
+        lines = [_fit(items[name], width) for name in _NATURAL_ORDER if name in kept]
+
+        # Reflow into any rows still left: one stop per row, in route order,
+        # so a taller board (note_array/panel) shows more of the journey
+        # instead of leaving the extra rows blank.
+        remaining = height - len(lines)
+        if remaining > 0 and locations:
+            markers = {"visited": "x", "current": ">", "upcoming": " "}
+            for entry in locations:
+                if remaining <= 0:
+                    break
+                name = str(entry.get("name", ""))
+                marker = markers.get(entry.get("state"), " ")
+                lines.append(_fit(f"{marker} {name}", width))
+                remaining -= 1
+
         return lines
 
 

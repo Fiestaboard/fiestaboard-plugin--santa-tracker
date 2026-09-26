@@ -1,7 +1,7 @@
 {
   "id": "santa_tracker",
   "name": "Santa Tracker",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "Track Santa's journey around the world as midnight of December 25th hits famous locations in each timezone",
   "author": "FiestaBoard Team",
   "icon": "gift",
@@ -143,6 +143,17 @@
         "{63}{66}{63} SANTA",
         "IN TOKYO JAPAN",
         "50% COMPLETE"
+      ]
+    },
+    {
+      "label": "Note Array (2 wide)",
+      "device_type": "note_array",
+      "notes_wide": 2,
+      "notes_tall": 1,
+      "rows": [
+        "     AT: TOKYO, JAPAN",
+        "   NEXT: BEIJING, CHINA",
+        "      PROGRESS: 50%"
       ]
     }
   ],
